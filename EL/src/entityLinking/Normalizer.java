@@ -2,6 +2,7 @@ package entityLinking;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -36,7 +37,7 @@ public class Normalizer{
 		return res;
 	}
 	
-	public void normalize(String file) throws IOException{
+	public void normalize(String file,String outfile) throws IOException{
 		BufferedReader br = new BufferedReader(new FileReader(file));			
 		String line =null;
 		StringBuilder content = new StringBuilder(6000);
@@ -45,31 +46,46 @@ public class Normalizer{
 		}
 		br.close();	
 		
-		Pattern pat = Pattern.compile("[\\w]+");		
-		Matcher mat =pat.matcher(content.toString());
+		FileWriter fout = new FileWriter(outfile);
+		
+		String sents[] = content.toString()
+				.split("\n|((?<!\\d)\\.(?!\\d))");
+		Pattern pat = Pattern.compile("[\\w]+");
+		for(String sentence:sents){
+		Matcher mat =pat.matcher(sentence);
 		ArrayList<String> tokens = new ArrayList<String>();
 		ArrayList<String> entity = new ArrayList<String>();
 		while(mat.find()){
 			tokens.add(mat.group().toLowerCase());			
 		}		
 		for(int i=0;i<tokens.size();i++){
-			entity.add(tokens.get(i));
-			//System.out.println(tokens.get(i)+" :  "+entity.size());
-			if(trie.matchPrefix(entity)==0){				
-				//System.out.println(entity.get(0)+" :  "+entity.size());
+			entity.add(tokens.get(i));			
+			if(trie.matchPrefix(entity)==0){								
 				do{
 					entity.remove(entity.size()-1);
 					i--;
 				}while(!trie.contains(entity) && !entity.isEmpty());
-				if(!entity.isEmpty()) System.out.println(changeEntityForm(entity));
-				entity = new ArrayList<>();
+				if(!entity.isEmpty()){
+					String entitystr = changeEntityForm(entity);
+System.out.println(entitystr);
+					fout.write(" [");
+					while(!entity.isEmpty()){
+						fout.write(" "+entity.remove(0));						
+					}
+					fout.write("| "+entitystr+"]");
+					i--;
+				}
+				else{
+					fout.write(" "+tokens.get(i+1));
+				}							
+				entity = new ArrayList<>();				
 				i++;
 			}
 				
 		}
-		
-			
-					
+		fout.write(".");
+		}
+		fout.close();								
 	}		
 
 }
